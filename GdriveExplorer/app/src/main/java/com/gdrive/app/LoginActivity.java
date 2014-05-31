@@ -6,6 +6,7 @@ import android.annotation.TargetApi;
 
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.CursorLoader;
+import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
@@ -131,6 +132,9 @@ public class LoginActivity extends ApiClientBaseActivity {
                 revokeAccess();
             }
         });
+
+        Intent intent = new Intent(getBaseContext(), QueryFilesActivity.class);
+        startActivity(intent);
     }
 
     @Override

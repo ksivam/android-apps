@@ -8,12 +8,17 @@ import android.app.Activity;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.plus.Plus;
 import com.google.android.gms.common.api.Status;
+
+import java.io.IOException;
 
 /**
  * A base class to wrap communication with the Google Play Services.
@@ -41,6 +46,8 @@ public abstract class ApiClientBaseActivity extends Activity
     // If this IS null, then the connect method is still running.
     private ConnectionResult mConnectionResult;
 
+    // The GoogleApiClient access token.
+    private String accessToken = null;
 
     /**
      * Called when the {@link GoogleApiClient} is successfully connected to Google Play Services.
@@ -297,6 +304,39 @@ public abstract class ApiClientBaseActivity extends Activity
      */
     public GoogleApiClient getApiClient() {
         return mGoogleApiClient;
+    }
+
+    /**
+     * Getter for {@link GoogleApiClient} access token.
+     * @return The accessToken string.
+     */
+    // http://stackoverflow.com/questions/17547019/calling-this-from-your-main-thread-can-lead-to-deadlock-and-or-anrs-while-getti
+    private String getAccessToken() {
+        if(accessToken != null){
+            return accessToken;
+        }
+
+        try {
+            accessToken = GoogleAuthUtil.getToken(this,
+                    Plus.AccountApi.getAccountName(mGoogleApiClient),
+                    "oauth2:SCOPE_PLUS_LOGIN SCOPE_FILE SCOPE_APPFOLDER");
+        } catch (IOException transientEx) {
+            // network or server error, the call is expected to succeed if you try again later.
+            // Don't attempt to call again immediately - the request is likely to
+            // fail, you'll hit quotas or back-off.
+            accessToken = null;
+        } catch (UserRecoverableAuthException e) {
+            // Recover
+            accessToken = null;
+        } catch (GoogleAuthException authEx) {
+            // Failure. The call is not expected to ever succeed so it should not be
+            // retried.
+            accessToken = null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return accessToken;
     }
 
     /**
